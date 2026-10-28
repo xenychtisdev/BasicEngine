@@ -10,6 +10,12 @@ A step-by-step journey building a basic game engine in C++ using CMake and GLFW.
 
 **Source:** [View Step 0](https://github.com/xenychtisdev/BasicEngine/tree/Step0-GLFW-HelloWorld)
 
+### Step 1 — Draw a Triangle
+
+**Goal:** Draw a simple triangle to the screen, using a basic engine layout
+
+**Source:** [View Step 1](https://github.com/xenychtisdev/BasicEngine/tree/Step1-DrawTriangle)
+
 ## How to Follow Along
 
 Each step represents a milestone in the development of BasicEngine. Browse the source code for that stage to see the changes introduced as the engine evolves.
