@@ -40,12 +40,27 @@ cmake_minimum_required(VERSION 3.20)
 project(
     BasicEngine
     VERSION 0.1.0
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Runtime binaries: EXEs and DLLs.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY
+    "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Shared libraries on platforms where they use this output category.
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Static libraries and Windows import libraries.
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+    "${CMAKE_BINARY_DIR}/lib"
+)
 
 include(FetchContent)
 
@@ -64,24 +79,19 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(glfw)
 
-#add_subdirectory(include/glfw-3.5.1)
-
-# Build BasicEngine
-add_executable(
-    BasicEngine
-    src/main.cpp
+# GLAD
+add_library(glad STATIC
+    external/glad/src/glad.c
 )
 
-# Include directories
-target_include_directories(
-    BasicEngine
-    PRIVATE
-       ${CMAKE_CURRENT_SOURCE_DIR}/include
+target_include_directories(glad PUBLIC
+    external/glad/include
 )
 
-# Link relevant directories
-target_link_libraries(
-    BasicEngine
-    PRIVATE
-        glfw
-)
+find_package(OpenGL REQUIRED)
+
+# Engine DLL / shared library
+add_subdirectory(Engine)
+
+# Game executable
+add_subdirectory(Game)
