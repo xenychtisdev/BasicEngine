@@ -1,6 +1,6 @@
 # BasicEngine
 
-A step-by-step journey building a basic game engine in C++ using CMake and GLFW.
+A step-by-step journey building a basic game engine in C++.
 
 ## Learning Roadmap
 
@@ -16,6 +16,12 @@ A step-by-step journey building a basic game engine in C++ using CMake and GLFW.
 
 **Source:** [View Step 1](https://github.com/xenychtisdev/BasicEngine/tree/Step1-DrawTriangle)
 
+### Step 2 — Transform a Triangle
+
+**Goal:** Move, rotate, and scale the triangle with keyboard input, using delta time and GLM transformation matrices
+
+**Source:** [View Step 2](https://github.com/xenychtisdev/BasicEngine/tree/Step2-TransformTriangle)
+
 ## How to Follow Along
 
 Each step represents a milestone in the development of BasicEngine. Browse the source code for that stage to see the changes introduced as the engine evolves.
@@ -24,4 +30,8 @@ Each step represents a milestone in the development of BasicEngine. Browse the s
 
 - C++
 - CMake
+- OpenGL
 - GLFW
+- GLAD
+- GLM
+- Dear ImGui
