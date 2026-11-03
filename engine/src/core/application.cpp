@@ -1,4 +1,6 @@
-#include "Engine/Core/Application.hpp"
+#include "engine/core/application.hpp"
+
+#include <chrono>
 
 Application::~Application()
 {
@@ -10,9 +12,20 @@ int Application::Run()
     if (!Initialize())
         return -1;
 
+    using Clock = std::chrono::steady_clock;
+    auto previousTime = Clock::now();
+
     while (m_engine.IsRunning())
     {
-        Update();
+        const auto currentTime = Clock::now();
+
+        const float deltaTime = std::chrono::duration<float>(
+            currentTime - previousTime
+        ).count();
+
+        previousTime = currentTime;
+        
+        Update(deltaTime);
     }
 
     Shutdown();
@@ -31,9 +44,9 @@ bool Application::Initialize()
     return true;
 }
 
-void Application::Update()
+void Application::Update(float deltaTime)
 {
-    m_engine.Update();
+    m_engine.Update(deltaTime);
 }
 
 void Application::Shutdown()

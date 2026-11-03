@@ -71,13 +71,29 @@ FetchContent_Declare(
     GIT_TAG 3.5.1
 )
 
+# Download GLM automatically
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 1.0.3
+)
+
+# Download Dear ImGui automatically
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.93.0
+)
+
+FetchContent_MakeAvailable(glfw)
+FetchContent_MakeAvailable(glm)
+FetchContent_MakeAvailable(imgui)
+
 # Disable GLFW features we don't need yet
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-
-FetchContent_MakeAvailable(glfw)
 
 # GLAD
 add_library(glad STATIC
@@ -88,10 +104,35 @@ target_include_directories(glad PUBLIC
     external/glad/include
 )
 
+# Dear ImGUI
+add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+target_include_directories(imgui PUBLIC
+    ${imgui_SOURCE_DIR}
+)
+
+target_link_libraries(imgui PRIVATE
+    glfw
+    OpenGL::GL
+    ${CMAKE_DL_LIBS}
+)
+
+set_target_properties(imgui PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
+# OpenGL package
 find_package(OpenGL REQUIRED)
 
 # Engine DLL / shared library
-add_subdirectory(Engine)
+add_subdirectory(engine)
 
 # Game executable
-add_subdirectory(Game)
+add_subdirectory(game)

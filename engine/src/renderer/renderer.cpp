@@ -1,6 +1,7 @@
-#include <Engine/Renderer/Renderer.hpp>
+#include <engine/renderer/renderer.hpp>
 
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <vector>
@@ -14,9 +15,11 @@ namespace Engine
 
             layout (location = 0) in vec3 aPosition;
 
+            uniform mat4 u_Model;
+
             void main()
             {
-                gl_Position = vec4(aPosition, 1.0);
+                gl_Position = u_Model * vec4(aPosition, 1.0);
             }
         )";
 
@@ -149,6 +152,15 @@ namespace Engine
              0.0f,  0.5f, 0.0f
         };
 
+        m_ModelLocation = glGetUniformLocation(m_ShaderProgram, "u_Model");
+
+        if (m_ModelLocation == -1)
+        {
+            std::cerr << "Could not find u_Model uniform.\n";
+            Shutdown();
+            return false;
+        }
+
         glGenVertexArrays(1, &m_VAO);
         glGenBuffers(1, &m_VBO);
 
@@ -202,6 +214,7 @@ namespace Engine
             m_ShaderProgram = 0;
         }
 
+        m_ModelLocation = -1;
         m_Initialized = false;
     }
 
@@ -211,14 +224,21 @@ namespace Engine
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    void Renderer::DrawTriangle()
+    void Renderer::DrawTriangle(const glm::mat4& model)
     {
         if (!m_Initialized)
             return;
 
         glUseProgram(m_ShaderProgram);
-        glBindVertexArray(m_VAO);
 
+        glUniformMatrix4fv(
+            m_ModelLocation,
+            1,
+            GL_FALSE,
+            glm::value_ptr(model)
+        );
+
+        glBindVertexArray(m_VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glBindVertexArray(0);

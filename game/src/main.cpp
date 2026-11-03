@@ -1,4 +1,4 @@
-#include <Engine/Core/Application.hpp>
+#include <engine/core/application.hpp>
 
 int main()
 {

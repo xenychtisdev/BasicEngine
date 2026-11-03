@@ -1,9 +1,11 @@
 
 #pragma once
 
-#include <Engine/Core/Export.hpp>
-#include <Engine/Window/Window.hpp>
-#include <Engine/Renderer/Renderer.hpp>
+#include <engine/core/Export.hpp>
+#include <engine/window/window.hpp>
+#include <engine/input/input.hpp>
+#include <engine/renderer/renderer.hpp>
+#include <engine/math/transform.hpp>
 
 namespace Engine
 {
@@ -17,7 +19,7 @@ namespace Engine
         Engine& operator=(const Engine&) = delete;
 
         bool Initialize();
-        void Update();
+        void Update(float deltaTime);
         void Shutdown();
 
         bool IsRunning() const;
@@ -25,8 +27,14 @@ namespace Engine
         static const char* GetVersion();
 
     private:
+        void DrawControls();
+
+    private:
         Window m_Window;
+        Input m_Input;
         Renderer m_Renderer;
+
+        Transform m_TriangleTransform;
 
         bool m_Initialized = false;
     };

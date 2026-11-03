@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Engine.hpp>
+#include <engine/engine.hpp>
 
 class ENGINE_API Application
 {
@@ -15,7 +15,7 @@ public:
 
 private:
     bool Initialize();
-    void Update();
+    void Update(float deltaTime);
     void Shutdown();
 
     Engine::Engine m_engine;

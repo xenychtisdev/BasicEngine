@@ -1,4 +1,4 @@
-#include <Engine/Window/Window.hpp>
+#include <engine/window/window.hpp>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -20,6 +20,8 @@ namespace Engine
         if (!glfwInit())
             return false;
 
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
         m_Window = glfwCreateWindow(
             m_Width, m_Height, m_Title.c_str(), nullptr, nullptr
         );
@@ -31,6 +33,7 @@ namespace Engine
         }
 
         glfwMakeContextCurrent(m_Window);
+        glfwSwapInterval(1);
 
         if (!gladLoadGLLoader(
                 reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))

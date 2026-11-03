@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Engine/Core/Export.hpp>
+#include <engine/core/Export.hpp>
+#include <glm/mat4x4.hpp>
 
 namespace Engine
 {
@@ -18,7 +19,7 @@ namespace Engine
         void Shutdown();
 
         void BeginFrame();
-        void DrawTriangle();
+        void DrawTriangle(const glm::mat4& model);
         void EndFrame();
 
     private:
@@ -26,6 +27,7 @@ namespace Engine
         unsigned int m_VBO = 0;
         unsigned int m_ShaderProgram = 0;
 
+        int m_ModelLocation = -1;
         bool m_Initialized = false;
     };
 }
