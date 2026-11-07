@@ -41,3 +41,4 @@ Each step represents a milestone in the development of BasicEngine. Browse the s
 - GLAD
 - GLM
 - Dear ImGui
+- stb_image
