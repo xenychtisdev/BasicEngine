@@ -28,13 +28,16 @@ namespace Engine
 
     private:
         void DrawControls();
+        void DrawAppearanceControls();
 
     private:
         Window m_Window;
         Input m_Input;
         Renderer m_Renderer;
 
-        Transform m_TriangleTransform;
+        Transform m_QuadTransform;
+        glm::vec3 m_QuadTint{1.0f, 1.0f, 1.0f};
+        float m_QuadOpacity = 1.0f;
 
         bool m_Initialized = false;
     };

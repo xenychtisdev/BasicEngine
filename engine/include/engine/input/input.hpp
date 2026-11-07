@@ -11,7 +11,8 @@ namespace Engine
         W, A, S, D,
         Q, E,
         X, Z,
-        R, 
+        R,
+        C, V,
         Escape
     };
 

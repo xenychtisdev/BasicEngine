@@ -3,12 +3,19 @@ add_library(engine SHARED
     src/core/application.cpp
     src/window/window.cpp
     src/renderer/renderer.cpp
+    src/renderer/stb_image.cpp
+    src/renderer/texture2d.cpp
     src/input/input.cpp
 )
 
 target_include_directories(engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_include_directories(engine SYSTEM
+    PRIVATE
+        "${stb_SOURCE_DIR}"
 )
 
 target_link_libraries(engine

@@ -21,6 +21,8 @@ namespace Engine
                 case Key::X:        return GLFW_KEY_X;
                 case Key::Z:        return GLFW_KEY_Z;
                 case Key::R:        return GLFW_KEY_R;
+                case Key::C:        return GLFW_KEY_C;
+                case Key::V:        return GLFW_KEY_V;
                 case Key::Escape:   return GLFW_KEY_ESCAPE;
             }
 

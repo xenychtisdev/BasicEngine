@@ -85,15 +85,22 @@ FetchContent_Declare(
     GIT_TAG v1.93.0
 )
 
-FetchContent_MakeAvailable(glfw)
-FetchContent_MakeAvailable(glm)
-FetchContent_MakeAvailable(imgui)
+# Download stb (for stb_image)
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+)
 
 # Disable GLFW features we don't need yet
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(glfw)
+FetchContent_MakeAvailable(glm)
+FetchContent_MakeAvailable(imgui)
+FetchContent_MakeAvailable(stb)
 
 # GLAD
 add_library(glad STATIC

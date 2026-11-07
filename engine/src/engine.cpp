@@ -83,9 +83,7 @@ namespace Engine
 
         ImGui_ImplOpenGL3_Init("#version 330 core");
 
-        m_TriangleTransform.position = glm::vec3{0.3f, 0.0f, 0.0f};
-        m_TriangleTransform.rotationRadians = glm::radians(30.0f);
-        m_TriangleTransform.scale = glm::vec3{0.5f, 0.5f, 1.0f};
+        m_QuadTransform = Transform{};
 
         m_Initialized = true;
         return true;
@@ -104,69 +102,95 @@ namespace Engine
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Input-driven movement, update triangle's transform
-        constexpr float moveSpeed = 0.5f;
+        // Gates keyboard movement while ImGui captures keyboard
+        if (!ImGui::GetIO().WantCaptureKeyboard)
+        {
+            // Input-driven movement, update triangle's transform
+            constexpr float moveSpeed = 0.5f;
 
-        glm::vec3 direction(0.0f, 0.0f, 0.0f);
+            glm::vec3 direction(0.0f, 0.0f, 0.0f);
 
-        if (m_Input.IsKeyDown(Key::D))
-            direction.x += 1.0f;
-            //m_TriangleTransform.position.x += moveSpeed * deltaTime;
+            if (m_Input.IsKeyDown(Key::D))
+                direction.x += 1.0f;
+                //m_QuadTransform.position.x += moveSpeed * deltaTime;
 
-        if (m_Input.IsKeyDown(Key::A))
-            direction.x -= 1.0f;
-            //m_TriangleTransform.position.x -= moveSpeed * deltaTime;
+            if (m_Input.IsKeyDown(Key::A))
+                direction.x -= 1.0f;
+                //m_QuadTransform.position.x -= moveSpeed * deltaTime;
 
-        if (m_Input.IsKeyDown(Key::W))
-            direction.y += 1.0f;
-            //m_TriangleTransform.position.y += moveSpeed * deltaTime;
+            if (m_Input.IsKeyDown(Key::W))
+                direction.y += 1.0f;
+                //m_QuadTransform.position.y += moveSpeed * deltaTime;
+                
+            if (m_Input.IsKeyDown(Key::S))
+                direction.y -= 1.0f;
+                //m_QuadTransform.position.y -= moveSpeed * deltaTime;
+
+            //if (glm::length(direction) > 0.0f)
+            if (glm::dot(direction, direction) > 1.0f)
+                direction = glm::normalize(direction);
+
+            m_QuadTransform.position +=
+                direction * moveSpeed * deltaTime;
             
-        if (m_Input.IsKeyDown(Key::S))
-            direction.y -= 1.0f;
-            //m_TriangleTransform.position.y -= moveSpeed * deltaTime;
+            float rotationSpeed = glm::radians(90.0f);
+            
+            if (m_Input.IsKeyDown(Key::Q))
+                m_QuadTransform.rotationRadians += rotationSpeed * deltaTime;
 
-        //if (glm::length(direction) > 0.0f)
-        if (glm::dot(direction, direction) > 1.0f)
-            direction = glm::normalize(direction);
+            if (m_Input.IsKeyDown(Key::E))
+                m_QuadTransform.rotationRadians -= rotationSpeed * deltaTime;
+            
+            constexpr float scaleSpeed = 0.5f;
+            float scaleChange = 0.0f;
 
-        m_TriangleTransform.position +=
-            direction * moveSpeed * deltaTime;
-        
-        float rotationSpeed = glm::radians(90.0f);
-        
-        if (m_Input.IsKeyDown(Key::Q))
-            m_TriangleTransform.rotationRadians += rotationSpeed * deltaTime;
+            if (m_Input.IsKeyDown(Key::X))
+                scaleChange += scaleSpeed * deltaTime;
 
-        if (m_Input.IsKeyDown(Key::E))
-            m_TriangleTransform.rotationRadians -= rotationSpeed * deltaTime;
-        
-        constexpr float scaleSpeed = 0.5f;
-        float scaleChange = 0.0f;
+            if (m_Input.IsKeyDown(Key::Z))
+                scaleChange -= scaleSpeed * deltaTime;
 
-        if (m_Input.IsKeyDown(Key::X))
-            scaleChange += scaleSpeed * deltaTime;
+            const float newScale = std::clamp(
+                m_QuadTransform.scale.x + scaleChange,
+                0.05f,
+                5.0f
+            );
 
-        if (m_Input.IsKeyDown(Key::Z))
-            scaleChange -= scaleSpeed * deltaTime;
+            m_QuadTransform.scale = glm::vec3{newScale, newScale, 1.0f};
 
-        const float newScale = std::clamp(
-            m_TriangleTransform.scale.x + scaleChange,
-            0.05f,
-            5.0f
-        );
+            constexpr float fadeSpeed = 0.5f;
 
-        m_TriangleTransform.scale = glm::vec3{newScale, newScale, 1.0f};
+            if (m_Input.IsKeyDown(Key::C))
+            {
+                m_QuadOpacity -= fadeSpeed * deltaTime;
+            }
 
-        if (m_Input.IsKeyDown(Key::R))
-            m_TriangleTransform = Transform{};
+            if (m_Input.IsKeyDown(Key::V))
+            {
+                m_QuadOpacity += fadeSpeed * deltaTime;
+            }
+
+            m_QuadOpacity = std::clamp(m_QuadOpacity, 0.0f, 1.0f);
+
+            if (m_Input.IsKeyDown(Key::R))
+            {
+                m_QuadTransform = Transform{};
+                m_QuadOpacity = 1.0f;
+            }
+        }
 
         // Draw using the current transform
         m_Renderer.BeginFrame();
-        m_Renderer.DrawTriangle(m_TriangleTransform.GetMatrix());
+        m_Renderer.DrawQuad(
+            m_QuadTransform.GetMatrix(),
+            m_QuadTint,
+            m_QuadOpacity
+        );
         m_Renderer.EndFrame();
 
         // Draw UI on top of scene
         DrawControls();
+        DrawAppearanceControls();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -229,7 +253,41 @@ namespace Engine
             ImGui::TextUnformatted("WASD    Move");
             ImGui::TextUnformatted("Q / E   Rotate");
             ImGui::TextUnformatted("Z / X   Shrink / Grow");
+            ImGui::TextUnformatted("C / V   Fade out / Fade in");
             ImGui::TextUnformatted("R       Reset");
+        }
+
+        ImGui::End();
+    }
+
+    void Engine::DrawAppearanceControls()
+    {
+        if (ImGui::Begin("Appearance"))
+        {
+            float tint[] =
+            {
+                m_QuadTint.r,
+                m_QuadTint.g,
+                m_QuadTint.b
+            };
+
+            if (ImGui::ColorEdit3("Tint", tint))
+            {
+                m_QuadTint = glm::vec3{
+                    tint[0], tint[1], tint[2]
+                };
+            }
+
+            ImGui::SliderFloat(
+                "Opacity", &m_QuadOpacity, 0.0f, 1.0f,
+                "%.2f", ImGuiSliderFlags_AlwaysClamp
+            );
+
+            if (ImGui::Button("Reset appearance"))
+            {
+                m_QuadTint = glm::vec3{1.0f, 1.0f, 1.0f};
+                m_QuadOpacity = 1.0f;
+            }
         }
 
         ImGui::End();
