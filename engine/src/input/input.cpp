@@ -12,18 +12,23 @@ namespace Engine
         {
             switch (key)
             {
-                case Key::W:        return GLFW_KEY_W;
-                case Key::A:        return GLFW_KEY_A;
-                case Key::S:        return GLFW_KEY_S;
-                case Key::D:        return GLFW_KEY_D;
-                case Key::Q:        return GLFW_KEY_Q;
-                case Key::E:        return GLFW_KEY_E;
-                case Key::X:        return GLFW_KEY_X;
-                case Key::Z:        return GLFW_KEY_Z;
-                case Key::R:        return GLFW_KEY_R;
-                case Key::C:        return GLFW_KEY_C;
-                case Key::V:        return GLFW_KEY_V;
-                case Key::Escape:   return GLFW_KEY_ESCAPE;
+                case Key::W:            return GLFW_KEY_W;
+                case Key::A:            return GLFW_KEY_A;
+                case Key::S:            return GLFW_KEY_S;
+                case Key::D:            return GLFW_KEY_D;
+                case Key::Q:            return GLFW_KEY_Q;
+                case Key::E:            return GLFW_KEY_E;
+                case Key::X:            return GLFW_KEY_X;
+                case Key::Z:            return GLFW_KEY_Z;
+                case Key::R:            return GLFW_KEY_R;
+                case Key::C:            return GLFW_KEY_C;
+                case Key::V:            return GLFW_KEY_V;
+                case Key::Up:           return GLFW_KEY_UP;
+                case Key::Down:         return GLFW_KEY_DOWN;
+                case Key::Left:         return GLFW_KEY_LEFT;
+                case Key::Right:        return GLFW_KEY_RIGHT;
+                case Key::LeftShift:    return GLFW_KEY_LEFT_SHIFT;
+                case Key::Escape:       return GLFW_KEY_ESCAPE;
             }
 
             return GLFW_KEY_UNKNOWN;

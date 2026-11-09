@@ -13,6 +13,8 @@ namespace Engine
         X, Z,
         R,
         C, V,
+        Up, Down, Left, Right,
+        LeftShift,
         Escape
     };
 

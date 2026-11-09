@@ -85,6 +85,15 @@ namespace Engine
 
         m_QuadTransform = Transform{};
 
+        m_Landmarks[0].position = {-0.85f, -0.55f, 0.0f};
+        m_Landmarks[1].position = { 0.85f,  0.55f, 0.0f};
+        m_Landmarks[2].position = { 2.25f,  0.10f, 0.0f};
+
+        for (auto& landmark : m_Landmarks)
+        {
+            landmark.scale = {0.25f, 0.25f, 1.0f};
+        }
+
         m_Initialized = true;
         return true;
     }
@@ -97,6 +106,24 @@ namespace Engine
         // Receive input, window events
         m_Window.PollEvents();
 
+        // Orthographic Projection
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(m_Window.GetNativeWindow(), &width, &height);
+
+        if (width <= 0 || height <= 0)
+            return;
+
+        glViewport(0, 0, width, height);
+
+        const float aspect =
+            static_cast<float>(width) / static_cast<float>(height);
+
+        const glm::mat4 projection = glm::ortho(
+            -aspect, aspect,    // LR
+            -1.0f, 1.0f         // TB
+        );
+
         // Start ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -106,7 +133,16 @@ namespace Engine
         if (!ImGui::GetIO().WantCaptureKeyboard)
         {
             // Input-driven movement, update triangle's transform
-            constexpr float moveSpeed = 0.5f;
+            constexpr float baseMoveSpeed = 0.5f;   // World units / s
+            constexpr float defaultScale = 1.0f;    // Match reset scale
+            constexpr float sprintMultiplier = 3.0f;
+
+            const float sizeMultiplier =
+                m_QuadTransform.scale.x / defaultScale;
+
+            const bool sprinting = m_Input.IsKeyDown(Key::LeftShift);
+            const float moveSpeed = baseMoveSpeed * sizeMultiplier
+                * (sprinting ? sprintMultiplier : 1.0f);
 
             glm::vec3 direction(0.0f, 0.0f, 0.0f);
 
@@ -177,15 +213,55 @@ namespace Engine
                 m_QuadTransform = Transform{};
                 m_QuadOpacity = 1.0f;
             }
+
+            constexpr float cameraSpeed = 1.0f; // World units per sec.
+            const float cameraStep = cameraSpeed * deltaTime;
+
+            if (m_Input.IsKeyDown(Key::Up))
+            {
+                m_CameraPosition.y += cameraStep;
+            }
+
+            if (m_Input.IsKeyDown(Key::Down))
+            {
+                m_CameraPosition.y -= cameraStep;
+            }
+            
+            if (m_Input.IsKeyDown(Key::Left))
+            {
+                m_CameraPosition.x -= cameraStep;
+            }
+            
+            if (m_Input.IsKeyDown(Key::Right))
+            {
+                m_CameraPosition.x += cameraStep;
+            }
         }
 
-        // Draw using the current transform
+        const glm::mat4 view = glm::translate(
+            glm::mat4{1.0f},
+            glm::vec3{-m_CameraPosition.x, -m_CameraPosition.y, 0.0f}
+        );
+
+        const glm::mat4 viewProjection = projection * view;
+
         m_Renderer.BeginFrame();
+
+        for (const auto& landmark : m_Landmarks)
+        {
+            m_Renderer.DrawQuad(
+                viewProjection * landmark.GetMatrix(),
+                glm::vec3{0.5f, 0.8f, 1.0f},
+                1.0f
+            );
+        }
+
         m_Renderer.DrawQuad(
-            m_QuadTransform.GetMatrix(),
+            viewProjection * m_QuadTransform.GetMatrix(),
             m_QuadTint,
             m_QuadOpacity
         );
+
         m_Renderer.EndFrame();
 
         // Draw UI on top of scene
@@ -251,6 +327,7 @@ namespace Engine
             ImGui::TextUnformatted("Controls");
             ImGui::Separator();
             ImGui::TextUnformatted("WASD    Move");
+            ImGui::TextUnformatted("Shift   Sprint");
             ImGui::TextUnformatted("Q / E   Rotate");
             ImGui::TextUnformatted("Z / X   Shrink / Grow");
             ImGui::TextUnformatted("C / V   Fade out / Fade in");

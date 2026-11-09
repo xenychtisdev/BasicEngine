@@ -7,6 +7,8 @@
 #include <engine/renderer/renderer.hpp>
 #include <engine/math/transform.hpp>
 
+#include <array>
+
 namespace Engine
 {
     class ENGINE_API Engine
@@ -38,6 +40,10 @@ namespace Engine
         Transform m_QuadTransform;
         glm::vec3 m_QuadTint{1.0f, 1.0f, 1.0f};
         float m_QuadOpacity = 1.0f;
+
+        std::array<Transform, 3> m_Landmarks{};
+
+        glm::vec2 m_CameraPosition{0.0f, 0.0f};
 
         bool m_Initialized = false;
     };
