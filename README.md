@@ -28,6 +28,12 @@ A step-by-step journey building a basic game engine in C++.
 
 **Source:** [View Step 3](https://github.com/xenychtisdev/BasicEngine/tree/Step3-TexturedQuad)
 
+### Step 4 — Add a 2D Camera
+
+**Goal:** Add an orthographic camera with arrow-key panning and aspect-ration correction. Render a small scene with a controllable sprite and stationary landmarks. Scale the sprite's movement speed with its size, and hold LShift to sprint.
+
+**Source:** [View Step 4](https://github.com/xenychtisdev/BasicEngine/tree/Step4-2DCamera)
+
 ## How to Follow Along
 
 Each step represents a milestone in the development of BasicEngine. Browse the source code for that stage to see the changes introduced as the engine evolves.
