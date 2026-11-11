@@ -54,3 +54,4 @@ Each step represents a milestone in the development of BasicEngine. Browse the s
 - GLM
 - Dear ImGui
 - stb_image
+- EnTT
