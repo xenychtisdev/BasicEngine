@@ -34,6 +34,12 @@ A step-by-step journey building a basic game engine in C++.
 
 **Source:** [View Step 4](https://github.com/xenychtisdev/BasicEngine/tree/Step4-2DCamera)
 
+### Step 5 — Add Entities and Components
+
+**Goal:** Introduce EnTT and store the player, landmarks, and drifters as entities in a scene registry. Use Transform and Srpite components to draw entities, and a Velocity component to move drifters automatically. Click the scene to spawn a drifter at the cursor's world position. Press R to reset the player and remove all drifters.
+
+**Source:** [View Step 5](https://github.com/xenychtisdev/BasicEngine/tree/Step5-EntityComponents)
+
 ## How to Follow Along
 
 Each step represents a milestone in the development of BasicEngine. Browse the source code for that stage to see the changes introduced as the engine evolves.
