@@ -1,6 +1,10 @@
 
 #include <engine/engine.hpp>
 
+#include <engine/math/transform.hpp>
+#include <engine/scene/components/sprite.hpp>
+#include <engine/scene/components/velocity.hpp>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -9,10 +13,15 @@
 #include <backends/imgui_impl_opengl3.h>
 
 //Temp
+#include <iostream>
 #include <algorithm>
+#include <vector>
 
 namespace Engine
 {
+    // Temporary, to test entity despawning functionality
+    struct Drifter {};
+    
     Engine::Engine()
         : m_Window(640, 480, "My Engine"),
           m_Input(m_Window)
@@ -83,15 +92,29 @@ namespace Engine
 
         ImGui_ImplOpenGL3_Init("#version 330 core");
 
-        m_QuadTransform = Transform{};
+        auto& registry = m_Scene.GetRegistry();
 
-        m_Landmarks[0].position = {-0.85f, -0.55f, 0.0f};
-        m_Landmarks[1].position = { 0.85f,  0.55f, 0.0f};
-        m_Landmarks[2].position = { 2.25f,  0.10f, 0.0f};
+        m_Player = registry.create();
+        registry.emplace<Transform>(m_Player);
+        registry.emplace<Sprite>(m_Player);
 
-        for (auto& landmark : m_Landmarks)
+        const glm::vec3 landmarkPositions[] = 
         {
-            landmark.scale = {0.25f, 0.25f, 1.0f};
+            {-0.85f, -0.55f, 0.0f},
+            { 0.85f,  0.55f, 0.0f},
+            { 2.25f,  0.10f, 0.0f}
+        };
+
+        for (const auto& position : landmarkPositions)
+        {
+            const auto entity = registry.create();
+
+            auto& transform = registry.emplace<Transform>(entity);
+            transform.position = position;
+            transform.scale = {0.25f, 0.25f, 1.0f};
+
+            auto& sprite = registry.emplace<Sprite>(entity);
+            sprite.tint = {0.5f, 0.8f, 1.0f};
         }
 
         m_Initialized = true;
@@ -124,6 +147,10 @@ namespace Engine
             -1.0f, 1.0f         // TB
         );
 
+        auto& registry = m_Scene.GetRegistry();
+        auto& playerTransform = registry.get<Transform>(m_Player);
+        auto& playerSprite = registry.get<Sprite>(m_Player);
+
         // Start ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -138,7 +165,7 @@ namespace Engine
             constexpr float sprintMultiplier = 3.0f;
 
             const float sizeMultiplier =
-                m_QuadTransform.scale.x / defaultScale;
+                playerTransform.scale.x / defaultScale;
 
             const bool sprinting = m_Input.IsKeyDown(Key::LeftShift);
             const float moveSpeed = baseMoveSpeed * sizeMultiplier
@@ -166,16 +193,16 @@ namespace Engine
             if (glm::dot(direction, direction) > 1.0f)
                 direction = glm::normalize(direction);
 
-            m_QuadTransform.position +=
+            playerTransform.position +=
                 direction * moveSpeed * deltaTime;
             
             float rotationSpeed = glm::radians(90.0f);
             
             if (m_Input.IsKeyDown(Key::Q))
-                m_QuadTransform.rotationRadians += rotationSpeed * deltaTime;
+                playerTransform.rotationRadians += rotationSpeed * deltaTime;
 
             if (m_Input.IsKeyDown(Key::E))
-                m_QuadTransform.rotationRadians -= rotationSpeed * deltaTime;
+                playerTransform.rotationRadians -= rotationSpeed * deltaTime;
             
             constexpr float scaleSpeed = 0.5f;
             float scaleChange = 0.0f;
@@ -187,31 +214,42 @@ namespace Engine
                 scaleChange -= scaleSpeed * deltaTime;
 
             const float newScale = std::clamp(
-                m_QuadTransform.scale.x + scaleChange,
+                playerTransform.scale.x + scaleChange,
                 0.05f,
                 5.0f
             );
 
-            m_QuadTransform.scale = glm::vec3{newScale, newScale, 1.0f};
+            playerTransform.scale = glm::vec3{newScale, newScale, 1.0f};
 
             constexpr float fadeSpeed = 0.5f;
 
             if (m_Input.IsKeyDown(Key::C))
             {
-                m_QuadOpacity -= fadeSpeed * deltaTime;
+                playerSprite.opacity -= fadeSpeed * deltaTime;
             }
 
             if (m_Input.IsKeyDown(Key::V))
             {
-                m_QuadOpacity += fadeSpeed * deltaTime;
+                playerSprite.opacity += fadeSpeed * deltaTime;
             }
 
-            m_QuadOpacity = std::clamp(m_QuadOpacity, 0.0f, 1.0f);
+            playerSprite.opacity =
+                std::clamp(playerSprite.opacity, 0.0f, 1.0f);
 
             if (m_Input.IsKeyDown(Key::R))
             {
-                m_QuadTransform = Transform{};
-                m_QuadOpacity = 1.0f;
+                playerTransform = Transform{};
+                playerSprite.opacity = 1.0f;
+
+                const auto drifters = registry.view<Drifter>();
+                const std::vector<entt::entity> toDestroy(
+                    drifters.begin(), drifters.end()
+                );
+
+                for (const auto entity : toDestroy)
+                {
+                    registry.destroy(entity);
+                }
             }
 
             constexpr float cameraSpeed = 1.0f; // World units per sec.
@@ -245,21 +283,80 @@ namespace Engine
 
         const glm::mat4 viewProjection = projection * view;
 
+        GLFWwindow* window = m_Window.GetNativeWindow();
+
+        const bool leftMouseDown =
+            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        const bool clicked = leftMouseDown && !m_LeftMouseWasDown;
+
+        m_LeftMouseWasDown = leftMouseDown;
+
+        if (clicked && !ImGui::GetIO().WantCaptureMouse)
+        {
+            double mouseX = 0.0;
+            double mouseY = 0.0;
+            glfwGetCursorPos(window, &mouseX, &mouseY);
+
+            int windowWidth = 0;
+            int windowHeight = 0;
+            glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+            if (windowWidth > 0 && windowHeight > 0)
+            {
+                const float ndcX = static_cast<float>(
+                    2.0 * mouseX / windowWidth - 1.0
+                );
+                const float ndcY = static_cast<float>(
+                    1.0 - 2.0 * mouseY / windowHeight
+                );
+
+                const glm::vec4 world = glm::inverse(viewProjection) *
+                    glm::vec4{ndcX, ndcY, 0.0f, 1.0f};
+
+                SpawnDrifter(glm::vec3{
+                    world.x / world.w,
+                    world.y / world.w,
+                    0.0f
+                });
+            }
+        }
+
+        auto movingEntities =
+            registry.view<Transform, const Velocity>();
+
+        for (const auto entity : movingEntities)
+        {
+            auto& transform =
+                movingEntities.get<Transform>(entity);
+            const auto& velocity =
+                movingEntities.get<const Velocity>(entity);
+
+            transform.position += velocity.linear * deltaTime;
+        }
+
         m_Renderer.BeginFrame();
 
-        for (const auto& landmark : m_Landmarks)
+        auto sprites = registry.view<Transform, Sprite>();
+
+        for (const auto& entity : sprites)
         {
+            if (entity == m_Player)
+                continue;
+
+            const auto& transform = sprites.get<Transform>(entity);
+            const auto& sprite = sprites.get<Sprite>(entity);
+            
             m_Renderer.DrawQuad(
-                viewProjection * landmark.GetMatrix(),
-                glm::vec3{0.5f, 0.8f, 1.0f},
-                1.0f
+                viewProjection * transform.GetMatrix(),
+                sprite.tint,
+                sprite.opacity
             );
         }
 
         m_Renderer.DrawQuad(
-            viewProjection * m_QuadTransform.GetMatrix(),
-            m_QuadTint,
-            m_QuadOpacity
+            viewProjection * playerTransform.GetMatrix(),
+            playerSprite.tint,
+            playerSprite.opacity
         );
 
         m_Renderer.EndFrame();
@@ -284,6 +381,9 @@ namespace Engine
     {
         if (!m_Initialized)
             return;
+
+        m_Scene.GetRegistry().clear();
+        m_Player = entt::null;
 
         // Release ImGui
         ImGui_ImplOpenGL3_Shutdown();
@@ -331,6 +431,7 @@ namespace Engine
             ImGui::TextUnformatted("Q / E   Rotate");
             ImGui::TextUnformatted("Z / X   Shrink / Grow");
             ImGui::TextUnformatted("C / V   Fade out / Fade in");
+            ImGui::TextUnformatted("L Click Spawn Drifter");
             ImGui::TextUnformatted("R       Reset");
         }
 
@@ -339,34 +440,56 @@ namespace Engine
 
     void Engine::DrawAppearanceControls()
     {
+        auto& playerSprite =
+            m_Scene.GetRegistry().get<Sprite>(m_Player);
+        
         if (ImGui::Begin("Appearance"))
         {
             float tint[] =
             {
-                m_QuadTint.r,
-                m_QuadTint.g,
-                m_QuadTint.b
+                playerSprite.tint.r,
+                playerSprite.tint.g,
+                playerSprite.tint.b
             };
 
             if (ImGui::ColorEdit3("Tint", tint))
             {
-                m_QuadTint = glm::vec3{
+                playerSprite.tint = glm::vec3{
                     tint[0], tint[1], tint[2]
                 };
             }
 
             ImGui::SliderFloat(
-                "Opacity", &m_QuadOpacity, 0.0f, 1.0f,
+                "Opacity", &playerSprite.opacity, 0.0f, 1.0f,
                 "%.2f", ImGuiSliderFlags_AlwaysClamp
             );
 
             if (ImGui::Button("Reset appearance"))
             {
-                m_QuadTint = glm::vec3{1.0f, 1.0f, 1.0f};
-                m_QuadOpacity = 1.0f;
+                playerSprite.tint = glm::vec3{1.0f, 1.0f, 1.0f};
+                playerSprite.opacity = 1.0f;
             }
         }
 
         ImGui::End();
+    }
+
+    void Engine::SpawnDrifter(const glm::vec3& position)
+    {
+        auto& registry = m_Scene.GetRegistry();
+        const auto drifter = registry.create();
+
+        auto& transform = registry.emplace<Transform>(drifter);
+        transform.position = position;
+        transform.scale = {0.25f, 0.25f, 1.0f};
+
+        auto& sprite = registry.emplace<Sprite>(drifter);
+        sprite.tint = {1.0f, 0.7f, 0.3f};
+
+        auto& velocity = registry.emplace<Velocity>(drifter);
+        velocity.linear = {0.3f, 0.0f, 0.0f};
+
+        // Temp, to test despawning
+        registry.emplace<Drifter>(drifter);
     }
 }

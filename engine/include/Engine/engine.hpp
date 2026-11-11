@@ -5,9 +5,7 @@
 #include <engine/window/window.hpp>
 #include <engine/input/input.hpp>
 #include <engine/renderer/renderer.hpp>
-#include <engine/math/transform.hpp>
-
-#include <array>
+#include <engine/scene/scene.hpp>
 
 namespace Engine
 {
@@ -32,18 +30,19 @@ namespace Engine
         void DrawControls();
         void DrawAppearanceControls();
 
+        void SpawnDrifter(const glm::vec3& position);
+
     private:
         Window m_Window;
         Input m_Input;
         Renderer m_Renderer;
+        Scene m_Scene;
 
-        Transform m_QuadTransform;
-        glm::vec3 m_QuadTint{1.0f, 1.0f, 1.0f};
-        float m_QuadOpacity = 1.0f;
-
-        std::array<Transform, 3> m_Landmarks{};
+        entt::entity m_Player = entt::null;
 
         glm::vec2 m_CameraPosition{0.0f, 0.0f};
+
+        bool m_LeftMouseWasDown = false;
 
         bool m_Initialized = false;
     };

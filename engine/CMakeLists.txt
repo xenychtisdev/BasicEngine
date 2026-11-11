@@ -26,6 +26,7 @@ target_link_libraries(engine
     PUBLIC
         glm::glm
         imgui
+        EnTT::EnTT
 )
 
 target_compile_definitions(engine PRIVATE ENGINE_BUILD)

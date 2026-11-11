@@ -36,6 +36,7 @@ Build and Run the Program (Once CMake is set up):
 
 
 cmake_minimum_required(VERSION 3.20)
+find_package(Git REQUIRED)
 
 project(
     BasicEngine
@@ -91,6 +92,13 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/nothings/stb.git
 )
 
+# Download EnTT
+FetchContent_Declare(
+    entt
+    GIT_REPOSITORY https://github.com/skypjack/entt.git
+    GIT_TAG v3.16.0
+)
+
 # Disable GLFW features we don't need yet
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -101,6 +109,7 @@ FetchContent_MakeAvailable(glfw)
 FetchContent_MakeAvailable(glm)
 FetchContent_MakeAvailable(imgui)
 FetchContent_MakeAvailable(stb)
+FetchContent_MakeAvailable(entt)
 
 # GLAD
 add_library(glad STATIC
