@@ -18,12 +18,13 @@ namespace Engine
             layout (location = 1) in vec2 aTexCoord;
 
             uniform mat4 u_ClipFromLocal;
+            uniform vec4 u_UvRect;
 
             out vec2 v_TexCoord;
 
             void main()
             {
-                v_TexCoord = aTexCoord;
+                v_TexCoord = mix(u_UvRect.xy, u_UvRect.zw, aTexCoord);
                 gl_Position = u_ClipFromLocal * vec4(aPosition, 1.0);
             }
         )";
@@ -173,10 +174,14 @@ namespace Engine
         m_OpacityLocation =
             glGetUniformLocation(m_ShaderProgram, "u_Opacity");
 
+        m_UvRectLocation = 
+            glGetUniformLocation(m_ShaderProgram, "u_UvRect");
+
         if (m_ModelLocation == -1 || 
             m_TextureLocation == -1 ||
+            m_TintLocation == -1 ||
             m_OpacityLocation == -1 ||
-            m_TintLocation == -1
+            m_UvRectLocation == -1
         )
         {
             std::cerr << "Could not find quad shader uniforms. \n";
@@ -248,12 +253,6 @@ namespace Engine
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        if (!m_Texture.LoadFromFile("assets/textures/sprite.png"))
-        {
-            Shutdown();
-            return false;
-        }
-
         // The sampler reads from texture unit zero.
         glUseProgram(m_ShaderProgram);
         glUniform1i(m_TextureLocation, 0);
@@ -266,7 +265,6 @@ namespace Engine
     void Renderer::Shutdown()
     {
         // All OpenGL resources must be released before the context closes
-        m_Texture.Shutdown();
         
         // Requires a valid, current OpenGL context.
         if (m_EBO != 0)
@@ -296,6 +294,7 @@ namespace Engine
         m_TextureLocation = -1;
         m_TintLocation = -1;
         m_OpacityLocation = -1;
+        m_UvRectLocation = -1;
 
         m_Initialized = false;
     }
@@ -311,8 +310,10 @@ namespace Engine
 
     void Renderer::DrawQuad(
         const glm::mat4& model,
+        const Texture2D& texture,
         const glm::vec3& tint,
-        float opacity
+        float opacity,
+        const glm::vec4& uvRect
     )
     {
         if (!m_Initialized)
@@ -339,7 +340,15 @@ namespace Engine
             glm::value_ptr(model)
         );
 
-        m_Texture.Bind(0);
+        glUniform4f(
+            m_UvRectLocation,
+            uvRect.x,
+            uvRect.y,
+            uvRect.z,
+            uvRect.w
+        );
+
+        texture.Bind(0);
 
         glBindVertexArray(m_VAO);
         

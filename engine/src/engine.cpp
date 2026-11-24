@@ -4,6 +4,8 @@
 #include <engine/math/transform.hpp>
 #include <engine/scene/components/sprite.hpp>
 #include <engine/scene/components/velocity.hpp>
+#include <engine/scene/components/animation.hpp>
+#include <engine/scene/components/attachedTo.hpp>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -21,6 +23,14 @@ namespace Engine
 {
     // Temporary, to test entity despawning functionality
     struct Drifter {};
+
+    namespace
+    {
+        constexpr char BaseShipTextureId[] = "ships.player.base";
+        constexpr char BaseEngineTextureId[] = "engines.player.base";
+        constexpr char BaseEngineEffectTextureId[] = "ship.engine.effects";
+        constexpr char DemoTextureId[] = "demo.original";
+    }
     
     Engine::Engine()
         : m_Window(640, 480, "My Engine"),
@@ -80,6 +90,41 @@ namespace Engine
             return false;
         }
 
+        if (!m_Textures.Load(
+                BaseShipTextureId,
+                "assets/textures/Foozle_2DS0011_Void_MainShip/Main Ship/Main Ship - Bases/PNGs/Main Ship - Base - Full health.png")
+            || !m_Textures.Load(
+                BaseEngineTextureId,
+                "assets/textures/Foozle_2DS0011_Void_MainShip/Main Ship/Main Ship - Engines/PNGs/Main Ship - Engines - Base Engine.png")
+            || !m_Textures.Load(
+                BaseEngineEffectTextureId,
+                "assets/textures/Foozle_2DS0011_Void_MainShip/Main Ship/Main Ship - Engine Effects/PNGs/Main Ship - Engines - Base Engine - Spritesheet.png")
+            || !m_Textures.Load(
+                DemoTextureId,
+                "assets/textures/Foozle_2DS0011_Void_MainShip/Main Ship/Main Ship - Bases/PNGs/Main Ship - Base - Very damaged.png")
+            || !RegisterGridClip(
+                "ship.engine.idle",
+                BaseEngineEffectTextureId,
+                4, 2,
+                3,
+                0.15,
+                0)
+            || !RegisterGridClip(
+                "ship.engine.powered",
+                BaseEngineEffectTextureId,
+                4, 2,
+                4,
+                0.08,
+                4
+            ))
+        {
+            m_Textures.Clear();
+            m_Renderer.Shutdown();
+            m_Window.Destroy();
+            glfwTerminate();
+            return false;
+        }
+
         // Initialize Dear ImGui
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -96,7 +141,27 @@ namespace Engine
 
         m_Player = registry.create();
         registry.emplace<Transform>(m_Player);
-        registry.emplace<Sprite>(m_Player);
+        registry.emplace<Sprite>(m_Player).textureId = BaseShipTextureId;
+
+        m_PlayerEngine = registry.create();
+
+        registry.emplace<Transform>(m_PlayerEngine);
+        registry.emplace<Sprite>(m_PlayerEngine).textureId = BaseEngineTextureId;
+        registry.emplace<AttachedTo>(
+            m_PlayerEngine,
+            AttachedTo(m_Player)
+        );
+
+        m_PlayerEngineEffect = registry.create();
+
+        registry.emplace<Transform>(m_PlayerEngineEffect);
+        registry.emplace<Sprite>(m_PlayerEngineEffect);
+        registry.emplace<AttachedTo>(
+            m_PlayerEngineEffect,
+            AttachedTo(m_Player)
+        );
+
+        PlayAnimation(m_PlayerEngineEffect, "ship.engine.idle");
 
         const glm::vec3 landmarkPositions[] = 
         {
@@ -114,6 +179,7 @@ namespace Engine
             transform.scale = {0.25f, 0.25f, 1.0f};
 
             auto& sprite = registry.emplace<Sprite>(entity);
+            sprite.textureId = DemoTextureId;
             sprite.tint = {0.5f, 0.8f, 1.0f};
         }
 
@@ -195,6 +261,20 @@ namespace Engine
 
             playerTransform.position +=
                 direction * moveSpeed * deltaTime;
+            
+            const bool powered =
+                glm::dot(direction, direction) > 0.0f;
+
+            const std::string desiredClip =
+                powered ? "ship.engine.powered" : "ship.engine.idle";
+
+            const auto& playback =
+                registry.get<Animation>(m_PlayerEngineEffect);
+
+            if (playback.clipId != desiredClip)
+            {
+                PlayAnimation(m_PlayerEngineEffect, desiredClip);
+            }
             
             float rotationSpeed = glm::radians(90.0f);
             
@@ -334,30 +414,79 @@ namespace Engine
             transform.position += velocity.linear * deltaTime;
         }
 
+        const Texture2D* shipTexture = m_Textures.Find(BaseShipTextureId);
+
+        UpdateAnimations(deltaTime);
+
         m_Renderer.BeginFrame();
+
+        const auto drawSprite = [&](entt::entity entity)
+        {
+            if (!registry.valid(entity) ||
+                !registry.all_of<Transform, Sprite>(entity))
+            {
+                return;
+            }
+
+            const auto& transform = registry.get<Transform>(entity);
+            const auto& sprite = registry.get<Sprite>(entity);
+            
+            const Texture2D* texture = m_Textures.Find(sprite.textureId);
+
+            if (texture == nullptr)
+            {
+                return;
+            }
+
+            glm::mat4 model = transform.GetMatrix();
+            float opacity = sprite.opacity;
+
+            if (const auto* attachment = registry.try_get<AttachedTo>(entity))
+            {
+                if (!registry.valid(attachment->parent))
+                    return;
+                
+                const auto* parentTransform =
+                    registry.try_get<Transform>(attachment->parent);
+
+                if (!parentTransform)
+                    return;
+
+                model = parentTransform->GetMatrix() * model;
+
+                if (const auto* parentSprite = 
+                        registry.try_get<Sprite>(attachment->parent))
+                {
+                    opacity *= parentSprite->opacity;
+                }
+            }
+
+            m_Renderer.DrawQuad(
+                viewProjection * model,
+                *texture,
+                sprite.tint,
+                opacity,
+                sprite.uvRect
+            );
+        };
 
         auto sprites = registry.view<Transform, Sprite>();
 
         for (const auto& entity : sprites)
         {
-            if (entity == m_Player)
+            if (entity == m_Player ||
+                entity == m_PlayerEngine ||
+                entity == m_PlayerEngineEffect)
+            {
                 continue;
+            }
 
-            const auto& transform = sprites.get<Transform>(entity);
-            const auto& sprite = sprites.get<Sprite>(entity);
-            
-            m_Renderer.DrawQuad(
-                viewProjection * transform.GetMatrix(),
-                sprite.tint,
-                sprite.opacity
-            );
+            drawSprite(entity);
         }
 
-        m_Renderer.DrawQuad(
-            viewProjection * playerTransform.GetMatrix(),
-            playerSprite.tint,
-            playerSprite.opacity
-        );
+        drawSprite(m_PlayerEngineEffect);
+        drawSprite(m_PlayerEngine);
+        drawSprite(m_Player);
 
         m_Renderer.EndFrame();
 
@@ -383,7 +512,12 @@ namespace Engine
             return;
 
         m_Scene.GetRegistry().clear();
+
         m_Player = entt::null;
+        m_PlayerEngine = entt::null;
+        m_PlayerEngineEffect = entt::null;
+
+        m_Textures.Clear();
 
         // Release ImGui
         ImGui_ImplOpenGL3_Shutdown();
@@ -474,6 +608,141 @@ namespace Engine
         ImGui::End();
     }
 
+    bool Engine::RegisterGridClip(
+        const std::string& clipId,
+        const std::string& textureId,
+        int columns,
+        int rows,
+        int frameCount,
+        double frameDuration,
+        int firstFrame
+    )
+    {
+        const Texture2D* texture = m_Textures.Find(textureId);
+
+        if (!texture ||
+            columns <= 0 ||
+            rows <= 0 ||
+            frameCount <= 0 ||
+            frameCount > static_cast<long long>(columns) * rows ||
+            !std::isfinite(frameDuration) ||
+            frameDuration <= 0.0 ||
+            firstFrame < 0 ||
+            frameCount <= 0 ||
+            static_cast<long long>(firstFrame) + frameCount >
+                static_cast<long long>(columns) * rows)
+        {
+            return false;
+        }
+
+        if (texture->GetWidth() % columns != 0 ||
+            texture->GetHeight() % rows != 0)
+        {
+            return false;
+        }
+        AnimationClip clip;
+        clip.textureId = textureId;
+        clip.frameDuration = frameDuration;
+        clip.frames.reserve(frameCount);
+
+        for (int index = 0; index < frameCount; ++index)
+        {
+            const int cell = firstFrame + index;
+            const int column = cell % columns;
+            const int row = cell / columns;
+
+            const float uMin =
+                static_cast<float>(column) / columns;
+            const float uMax =
+                static_cast<float>(column + 1) / columns;
+
+            // Cells are numbered from the top of the source image.
+            //  Texture2D currently flips the image vertically on loading.
+            const float vMin =
+                1.0f - static_cast<float>(row + 1) / rows;
+            const float vMax =
+                1.0f - static_cast<float>(row) / rows;
+
+            clip.frames.emplace_back(uMin, vMin, uMax, vMax);
+        }
+
+        return m_AnimationClips.emplace(
+            clipId, std::move(clip)
+        ).second;
+    }
+
+    bool Engine::PlayAnimation(
+        entt::entity entity,
+        const std::string& clipId,
+        std::size_t startingFrame
+    )
+    {
+        const auto found = m_AnimationClips.find(clipId);
+
+        if (found == m_AnimationClips.end())
+            return false;
+
+        const auto& clip = found->second;
+
+        auto& registry = m_Scene.GetRegistry();
+
+        if (!registry.valid(entity) || !registry.all_of<Sprite>(entity))
+            return false;
+
+        Animation playback;
+        playback.clipId = clipId;
+        playback.currentFrame = startingFrame % clip.frames.size();
+
+        registry.emplace_or_replace<Animation>(entity, playback);
+
+        auto& sprite = registry.get<Sprite>(entity);
+        sprite.textureId = clip.textureId;
+        sprite.uvRect = clip.frames[playback.currentFrame];
+
+        return true;
+    }
+
+    void Engine::UpdateAnimations(float deltaTime)
+    {
+        if (!std::isfinite(deltaTime) || deltaTime <= 0.0f)
+            return;
+
+        auto& registry = m_Scene.GetRegistry();
+        auto animatedSprites = registry.view<Sprite, Animation>();
+
+        for (const auto entity : animatedSprites)
+        {
+            auto& sprite = animatedSprites.get<Sprite>(entity);
+            auto& animation = animatedSprites.get<Animation>(entity);
+
+            const auto found =
+                m_AnimationClips.find(animation.clipId);
+
+            if (found == m_AnimationClips.end())
+                continue;
+
+            const auto& clip = found->second;
+
+            // Reduce long frame delays to the equivalent loop position
+            const double loopDuration =
+                clip.frameDuration * clip.frames.size();
+
+            animation.elapsed +=
+                std::fmod(static_cast<double>(deltaTime), loopDuration);
+
+            while (animation.elapsed >= clip.frameDuration)
+            {
+                animation.elapsed -= clip.frameDuration;
+
+                animation.currentFrame =
+                    (animation.currentFrame + 1) % clip.frames.size();
+            }
+
+            sprite.textureId = clip.textureId;
+            sprite.uvRect = clip.frames[animation.currentFrame];
+        }
+    }
+
     void Engine::SpawnDrifter(const glm::vec3& position)
     {
         auto& registry = m_Scene.GetRegistry();
@@ -485,6 +754,7 @@ namespace Engine
 
         auto& sprite = registry.emplace<Sprite>(drifter);
         sprite.tint = {1.0f, 0.7f, 0.3f};
+        sprite.textureId = BaseShipTextureId;
 
         auto& velocity = registry.emplace<Velocity>(drifter);
         velocity.linear = {0.3f, 0.0f, 0.0f};

@@ -23,8 +23,10 @@ namespace Engine
         void BeginFrame();
         void DrawQuad(
             const glm::mat4& model,
+            const Texture2D& texture,
             const glm::vec3& tint,
-            float opacity = 1.0f
+            float opacity,
+            const glm::vec4& uvRect
         );
         void EndFrame();
 
@@ -38,9 +40,8 @@ namespace Engine
         int m_TextureLocation = -1;
         int m_TintLocation = -1;
         int m_OpacityLocation = -1;
+        int m_UvRectLocation = -1;
 
         bool m_Initialized = false;
-
-        Texture2D m_Texture;
     };
 }
