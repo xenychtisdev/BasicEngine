@@ -40,6 +40,14 @@ A step-by-step journey building a basic game engine in C++.
 
 **Source:** [View Step 5](https://github.com/xenychtisdev/BasicEngine/tree/Step5-EntityComponents)
 
+### Step 6 — Sprite Sheets and Animation
+
+**Goal:** Introduced shared texture management and sprite sheet animation. Entities can now use different textures and play shared animation clips independently, allowing matching sprites to appear at different points in an animation. The player's sprite is now a ship, which combines a static base, engine, and animated engine effect. Attached parts follow the ship's transform and opacity, while the engine effect switches between idle and powered animations based on movement.
+
+Added incremental asset synchronization during builds using cmake. New and modified assets are copied into an 'assets' folder beside the executable, and assets removed from the source folder are removed from the build copy. Unchanged files are left alone.
+
+**Source:** [View Step 6](https://github.com/xenychtisdev/BasicEngine/tree/Step6-SpriteAnimation)
+
 ## How to Follow Along
 
 Each step represents a milestone in the development of BasicEngine. Browse the source code for that stage to see the changes introduced as the engine evolves.
